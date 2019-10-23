@@ -50,6 +50,41 @@ namespace Fleck2
             ListenerSocket.Dispose();
         }
 
+        public void Start_old(Action<IWebSocketConnection> config)		//Save old start method but renamed to Start_old
+        {
+            var ipLocal = new IPEndPoint(IPAddress.Any, Port);
+            Start_old(config, IPAddress.Any);
+        }
+
+/*
+
+ Add overload with `IPAddress` to `Start()`.	https://github.com/alastairs/Fleck2/commit/c1bb87804cc4c99c32df805f380fe957138bbdae
+
+The `Start()` method kicks off a web socket listening on all bound IP
+addresses for the machine, including public ones. Add an overload that
+takes an `IPAddress` parameter to allow the web socket to be started on
+the loopback interface only.
+
++ renamed to Start_old
+*/
+        public void Start_old(Action<IWebSocketConnection> config, IPAddress ipAddress)
+        {
+            var ipLocal = new IPEndPoint(ipAddress, Port);
+            ListenerSocket.Bind(ipLocal);
+            ListenerSocket.Listen(100);
+            FleckLog.Info("Server started at " + Location);
+            if (_scheme == "wss")
+            {
+                if (Certificate == null)
+                {
+                    FleckLog.Error("Scheme cannot be 'wss' without a Certificate");
+                    return;
+                }
+            }
+            ListenForClients();
+            _config = config;
+		}
+
         public void Start(Action<IWebSocketConnection> config)
         {
             var ipLocal = new IPEndPoint(BindOnlyToLoopback ? IPAddress.Loopback : IPAddress.Any, Port);
