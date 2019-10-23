@@ -23,11 +23,6 @@ namespace Fleck2
         {
         }
 
-        public WebSocketServer(int port, string location)
-            : this(8181, location, false)
-        {
-        }
-
         public WebSocketServer(int port, string location, bool bindOnlyToLoopback)
         {
             var uri = new Uri(location);
@@ -77,12 +72,12 @@ the loopback interface only.
             var ipLocal = new IPEndPoint(ipAddress, Port);
             ListenerSocket.Bind(ipLocal);
             ListenerSocket.Listen(100);
-            FleckLog.Info("Server started at " + Location,null);
+            FleckLog.Info("Server started at " + Location);
             if (_scheme == "wss")
             {
                 if (Certificate == null)
                 {
-                    FleckLog.Error("Scheme cannot be 'wss' without a Certificate",null);
+                    FleckLog.Error("Scheme cannot be 'wss' without a Certificate");
                     return;
                 }
             }
