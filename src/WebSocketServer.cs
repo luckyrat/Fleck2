@@ -15,23 +15,32 @@ namespace Fleck2
         public WebSocketServer(string location)
             : this(8181, location, false)
         {
-
         }
 
+        public WebSocketServer(string location, bool bindOnlyToLoopback)
+            : this(8181, location, bindOnlyToLoopback)
+        {
+        }
+
+        [Obsolete("Uri.Port default for ws:// has changed from 0 to 80 in recent .NET versions. Hence, supplying a port value independently of the location string can result in different behaviour in different client environments.")]
         public WebSocketServer(int port, string location)
-            : this(8181, location, false)
+            : this(port, location, false)
         {
         }
 
         public WebSocketServer(int port, string location, bool bindOnlyToLoopback)
         {
             var uri = new Uri(location);
+
+            // uri.Port default for ws:// has changed from 0 to 80 in recent .NET versions 
+            // so you should supply a custom port in the location string.
             Port = uri.Port > 0 ? uri.Port : port;
             BindOnlyToLoopback = bindOnlyToLoopback;
             Location = location;
             _scheme = uri.Scheme;
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             ListenerSocket = new SocketWrapper(socket);
+            FleckLog.Debug("Constructed server at " + location + ". Explicit port: " + port + ". Implicit port: " + uri.Port + ". Loopback only? " + BindOnlyToLoopback, null);
         }
 
         public ISocket ListenerSocket { get; set; }
@@ -52,9 +61,40 @@ namespace Fleck2
 
         public void Start(Action<IWebSocketConnection> config)
         {
-            var ipLocal = new IPEndPoint(BindOnlyToLoopback ? IPAddress.Loopback : IPAddress.Any, Port);
-            ListenerSocket.Bind(ipLocal);
-            ListenerSocket.Listen(100);
+            try
+            {
+                FleckLog.Debug("Starting server at " + Location + ". Loopback only? " + BindOnlyToLoopback, null);
+                var ipLocal = new IPEndPoint(BindOnlyToLoopback ? IPAddress.Loopback : IPAddress.Any, Port);
+                ListenerSocket.Bind(ipLocal);
+                ListenerSocket.Listen(100);
+            }
+            catch (SocketException sex)
+            {
+                if (sex.SocketErrorCode == SocketError.AccessDenied)
+                    FleckLog.Warn("Starting server at " + Location
+                            + " in enforced binding to any network address because windows denied us permission to bind to only localhost.", sex);
+                else
+                    FleckLog.Warn("Starting server at " + Location
+                            + " in enforced binding to any network address because of a socket exception with code: " + sex.SocketErrorCode + ".", sex);
+
+                try
+                {
+                    var ipAny = new IPEndPoint(IPAddress.Any, Port);
+                    ListenerSocket.Bind(ipAny);
+                    ListenerSocket.Listen(100);
+                }
+                catch (SocketException sex2)
+                {
+                    FleckLog.Error("Server failed to start for " + Location
+                        + ". Because of a socket exception with code: " + sex2.SocketErrorCode + ".", sex2);
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                FleckLog.Error("Server failed to start for " + Location + ". Because of a general exception.", ex);
+                throw;
+            }
             FleckLog.Info("Server started at " + Location,null);
             if (_scheme == "wss")
             {
