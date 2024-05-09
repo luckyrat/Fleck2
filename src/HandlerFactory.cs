@@ -19,7 +19,11 @@ namespace Fleck2
                 case "13":
                     return Hybi13Handler.Create(request, onMessage, onClose, onBinary);
             }
-            
+
+            if (request.Path == "/pingAvailabilityTest")
+            {
+                throw new AvailabilityPingReceivedException();
+            }
             throw new WebSocketException(WebSocketStatusCodes.UnsupportedDataType);
         }
         

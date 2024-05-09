@@ -63,6 +63,7 @@
     <Compile Include="WebSocketConnection.cs" />
     <Compile Include="WebSocketConnectionInfo.cs" />
     <Compile Include="WebSocketException.cs" />
+    <Compile Include="AvailabilityPingReceivedException.cs" />
     <Compile Include="WebSocketHttpRequest.cs" />
     <Compile Include="WebSocketServer.cs" />
     <Compile Include="WebSocketStatusCodes.cs" />

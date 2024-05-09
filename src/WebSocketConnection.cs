@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using Fleck2.Interfaces;
 
 using Ex = Fleck2.Fleck2Extensions;
@@ -154,8 +155,14 @@ namespace Fleck2
             }
             
             OnError(e);
-            
-            if (e is HandshakeException)
+
+            if (e is AvailabilityPingReceivedException)
+            {
+                string response = "HTTP/1.1 404 Not Found\r\n";
+                byte[] bytes = Encoding.UTF8.GetBytes(response);
+                FleckLog.Debug("Received availability ping so closing with response to client", null);
+                SendBytes(bytes, CloseSocket);
+            } else if (e is HandshakeException)
             {
                 FleckLog.Debug("Error while reading", e);
             }
